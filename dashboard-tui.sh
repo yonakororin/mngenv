@@ -810,12 +810,31 @@ build_php() {
 
     step "PHP $PHP_VERSION ビルド"
 
-    if [ -x "$PHPENV_ROOT/versions/$PHP_VERSION/sbin/php-fpm" ]; then
-        ok "PHP $PHP_VERSION は既にビルド済み"
-        return 0
-    fi
+    local configure_opts="--enable-fpm --enable-mbstring --enable-opcache \
+        --with-curl --with-openssl --with-readline --with-zip \
+        --with-mysqli --with-pdo-mysql --enable-gd --with-freetype --with-jpeg \
+        --enable-pcntl --enable-sockets --enable-bcmath --with-ffi"
+    [ "$DISTRO_FAMILY" != "alpine" ] && [ "$INIT_SYSTEM" = "systemd" ] && \
+        configure_opts+=" --with-fpm-systemd"
 
-    if [ -d "$PHPENV_ROOT/versions/$PHP_VERSION" ]; then
+    local opts_hash hash_file
+    opts_hash=$(echo "$configure_opts" | md5sum | cut -d' ' -f1)
+    hash_file="$PHPENV_ROOT/versions/$PHP_VERSION/.configure-opts.md5"
+
+    if [ -x "$PHPENV_ROOT/versions/$PHP_VERSION/sbin/php-fpm" ]; then
+        if [ -f "$hash_file" ] && [ "$(cat "$hash_file")" = "$opts_hash" ]; then
+            ok "PHP $PHP_VERSION は既にビルド済み"
+            return 0
+        fi
+        warn "PHP $PHP_VERSION のビルドオプションが変更されました。再ビルドします..."
+        if [ -x "$PHPENV_ROOT/bin/phpenv" ]; then
+            "$PHPENV_ROOT/bin/phpenv" uninstall --force "$PHP_VERSION" 2>/dev/null || \
+                rm -rf "$PHPENV_ROOT/versions/$PHP_VERSION"
+        else
+            rm -rf "$PHPENV_ROOT/versions/$PHP_VERSION"
+        fi
+        ok "PHP $PHP_VERSION を削除しました"
+    elif [ -d "$PHPENV_ROOT/versions/$PHP_VERSION" ]; then
         warn "PHP $PHP_VERSION に php-fpm が含まれていません。既存バージョンを削除して再ビルドします..."
         if [ -x "$PHPENV_ROOT/bin/phpenv" ]; then
             "$PHPENV_ROOT/bin/phpenv" uninstall --force "$PHP_VERSION" 2>/dev/null || \
@@ -848,14 +867,6 @@ build_php() {
         fi
     fi
 
-    local configure_opts="--enable-fpm --enable-mbstring --enable-opcache \
-        --with-curl --with-openssl --with-readline --with-zip \
-        --with-mysqli --with-pdo-mysql --enable-gd --with-freetype --with-jpeg \
-        --enable-pcntl --enable-sockets --enable-bcmath --with-ffi"
-
-    [ "$DISTRO_FAMILY" != "alpine" ] && [ "$INIT_SYSTEM" = "systemd" ] && \
-        configure_opts+=" --with-fpm-systemd"
-
     export PHP_BUILD_CONFIGURE_OPTS="$configure_opts"
 
     if [ ! -x "$PHPENV_ROOT/plugins/php-build/bin/phpenv-install" ]; then
@@ -867,6 +878,7 @@ build_php() {
     info "ビルド中... (数分かかります)"
     "$PHPENV_ROOT/bin/phpenv" install "$PHP_VERSION"
     "$PHPENV_ROOT/bin/phpenv" rehash
+    echo "$opts_hash" > "$hash_file"
     ok "PHP $PHP_VERSION ビルド完了"
 }
 
