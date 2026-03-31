@@ -767,7 +767,7 @@ install_deps() {
                 libxml2-dev libsqlite3-dev libcurl4-openssl-dev \
                 libonig-dev libreadline-dev libzip-dev \
                 libpng-dev libjpeg-dev libfreetype-dev \
-                libssl-dev libsystemd-dev libmysqlclient-dev ;;
+                libssl-dev libsystemd-dev libmysqlclient-dev libffi-dev ;;
         rhel)
             if [ "$PKG_MANAGER" = "dnf" ]; then
                 sudo dnf groupinstall -y "Development Tools" 2>/dev/null || true
@@ -780,22 +780,22 @@ install_deps() {
                 libxml2-devel sqlite-devel libcurl-devel \
                 oniguruma-devel readline-devel libzip-devel \
                 libpng-devel libjpeg-turbo-devel freetype-devel \
-                openssl-devel systemd-devel mysql-devel ;;
+                openssl-devel systemd-devel mysql-devel libffi-devel ;;
         arch)
             pkg_install base-devel autoconf bison re2c \
                 libxml2 sqlite curl oniguruma readline libzip \
-                libpng libjpeg-turbo freetype2 openssl systemd-libs mariadb-libs ;;
+                libpng libjpeg-turbo freetype2 openssl systemd-libs mariadb-libs libffi ;;
         suse)
             sudo zypper install -y -t pattern devel_C_C++ 2>/dev/null || true
             pkg_install autoconf bison re2c pkg-config \
                 libxml2-devel sqlite3-devel libcurl-devel \
                 oniguruma-devel readline-devel libzip-devel \
                 libpng16-devel libjpeg8-devel freetype2-devel \
-                libopenssl-devel systemd-devel libmysqlclient-devel ;;
+                libopenssl-devel systemd-devel libmysqlclient-devel libffi-devel ;;
         alpine)
             pkg_install build-base autoconf bison re2c pkgconfig \
                 libxml2-dev sqlite-dev curl-dev oniguruma-dev readline-dev libzip-dev \
-                libpng-dev libjpeg-turbo-dev freetype-dev openssl-dev linux-headers mariadb-dev ;;
+                libpng-dev libjpeg-turbo-dev freetype-dev openssl-dev linux-headers mariadb-dev libffi-dev ;;
     esac
 
     touch "$marker"
@@ -851,7 +851,7 @@ build_php() {
     local configure_opts="--enable-fpm --enable-mbstring --enable-opcache \
         --with-curl --with-openssl --with-readline --with-zip \
         --with-mysqli --with-pdo-mysql --enable-gd --with-freetype --with-jpeg \
-        --enable-pcntl --enable-sockets --enable-bcmath"
+        --enable-pcntl --enable-sockets --enable-bcmath --with-ffi"
 
     [ "$DISTRO_FAMILY" != "alpine" ] && [ "$INIT_SYSTEM" = "systemd" ] && \
         configure_opts+=" --with-fpm-systemd"
